@@ -1,5 +1,5 @@
 {-# LANGUAGE NoImplicitPrelude, FlexibleInstances, UndecidableInstances #-}
-module Haskell.Monads(Monad(..), MonadFish(..), MonadJoin(..)) where
+module Haskell.Hw3.Task3.Monads(Monad(..), MonadFish(..), MonadJoin(..)) where
 import Prelude hiding (Monad(..))
 
 class MonadFish m where
@@ -17,4 +17,4 @@ class Monad m where
 instance Monad Maybe where
     return x = Just x
     Nothing >>= f = Nothing  
-    Just x >>= f  = f x  
+    Just x >>= f  = f x
