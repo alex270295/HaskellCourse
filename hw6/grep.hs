@@ -10,8 +10,6 @@ run substr text = filter (isInfixOf substr) text
 createArray list arr = forM_ [1..(length list)] $ \i -> 
                         writeArray arr i (list !! (i-1))
 
-
-
 appCycle arr newArr len = do
   putStrLn "Edit(E Number), Write to file(W OutputFileName), Quit(Q)"
   line <- getLine
@@ -41,9 +39,9 @@ main = do
   args <- getArgs
   file <- readFile (args !! 0)
   let result = run (args !! 1) $ lines file
-  let len = ((length result))
+  let len = (length result)
   arr <- newArray (1 , len)  "" :: IO (IOArray Int String)
-  createArray (run (args !! 1) $ lines file) arr
+  createArray result arr
   forM_ [1..len] $ \i -> do
     s <- readArray arr i
     putStrLn $ show i ++ ") " ++ s
