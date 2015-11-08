@@ -1,33 +1,47 @@
 {-# LANGUAGE FlexibleContexts #-}
 import System.Environment
+import System.Directory
 import Data.List
 import Data.IORef
 import Data.Array.IO
 import Control.Monad
 
-run substr text = filter (isInfixOf substr) text
+grep :: Eq a => [a] -> [[a]] -> [[a]]
+grep substr text = filter (isInfixOf substr) text
 
-createArray list arr = forM_ [1..(length list)] $ \i -> 
-                        writeArray arr i (list !! (i-1))
-
-appCycle arr newArr len = do
+appCycle :: IOArray Int String -> IOArray Int String -> IO ()
+appCycle arr newArr = do
   putStrLn "Edit(E Number), Write to file(W OutputFileName), Quit(Q)"
   line <- getLine
-  proceed line arr newArr len
+  proceed line arr newArr
 
-proceed (x:xs) arr newArr len
-  | x == 'E' = edit (read xs :: Int) newArr >> appCycle arr newArr len
-  | x == 'W' = write (tail xs) arr newArr len >> appCycle arr newArr len
-proceed [x] arr newArr len
+proceed :: String -> IOArray Int String -> IOArray Int String -> IO ()
+proceed [x] arr newArr
   | x == 'Q' = return ()
-  | otherwise = putStrLn "Unknown command" >> appCycle arr newArr len
+proceed (x:xs) arr newArr
+  | x == 'E' = edit (read xs :: Int) newArr >> appCycle arr newArr
+  | x == 'W' = write (tail xs) arr newArr >> appCycle arr newArr
+proceed x arr newArr = putStrLn "Unknown command" >> appCycle arr newArr
 
-
+edit :: Int -> IOArray Int String -> IO ()
 edit index newArr = do
   writeArray newArr index =<< getLine
 
-write file arr newArr len = do
-    forM_ [1..len] $ \i -> do
+msgNewFile :: FilePath -> String
+msgNewFile file = "File " ++ file ++ " created, all changes saved"
+
+msgExistingFile :: String
+msgExistingFile = "Changes appended to existing file"
+
+write :: FilePath -> IOArray Int String -> IOArray Int String -> IO ()
+write file arr newArr = do
+    exists <- doesFileExist file
+    if (exists) then
+      putStrLn (msgExistingFile)
+    else            
+      putStrLn (msgNewFile file) >> writeFile file ""
+    bounds <- getBounds arr    
+    forM_ [1..snd bounds] $ \i -> do
       s1 <- readArray newArr i
       s2 <- readArray arr i
       if compare s1 s2 /= EQ then
@@ -37,19 +51,12 @@ write file arr newArr len = do
 
 main = do
   args <- getArgs
-  file <- readFile (args !! 0)
-  let result = run (args !! 1) $ lines file
-  let len = (length result)
-  arr <- newArray (1 , len)  "" :: IO (IOArray Int String)
-  createArray result arr
+  file <- readFile (args !! 1)
+  let result = grep (args !! 0) $ lines file
+  let len = length result
+  arr <- newListArray (1 , len)  result :: IO (IOArray Int String)  
+  newArr <- mapArray id arr
   forM_ [1..len] $ \i -> do
     s <- readArray arr i
     putStrLn $ show i ++ ") " ++ s
-  newArr <- newArray (1 , len)  "" :: IO (IOArray Int String)
-  forM_ [1..len] $ \i -> do
-    readArray arr i >>= writeArray newArr i
-
-  
-  appCycle arr newArr len
-
-  
+  appCycle arr newArr  
